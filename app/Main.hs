@@ -11,15 +11,12 @@ import Snake
 
 -- Data types. 
 data World = World {
-    lastUpdateTime :: UTCTime,
-    snake :: Snake, 
-    dir :: Dir, 
-    cycles :: Int,
-    food :: Maybe (Int, Int)
+    lastUpdateTime  :: UTCTime,
+    snake           :: Snake, 
+    dir             :: Dir, 
+    cycles          :: Int,
+    food            :: Maybe (Int, Int)
 }
-
-makeWorld :: UTCTime -> World 
-makeWorld timePoint = World timePoint newSnake R 0 Nothing
 
 -- Constants. 
 boardSize :: Int 
@@ -31,7 +28,10 @@ loff = 2
 toff :: Int
 toff = 2
 moveTime :: NominalDiffTime
-moveTime = 0.2
+moveTime = 0.25
+
+makeWorld :: UTCTime -> World 
+makeWorld timePoint = World timePoint newSnake R 0 Nothing
 
 -- Output a character by moving the cursor there.
 printChar :: Char -> (Int, Int) -> IO ()
@@ -63,19 +63,6 @@ renderWorld world oldWorld = do
     printFood (food world) 'f'
     return ()
     
-
-{- Process input character.
- - Direction cannot go from R to L or U to D (or vice versa). -}
-getCurrentDir :: World -> Maybe Char -> Dir
-getCurrentDir world Nothing = dir world
-getCurrentDir world (Just c)
-    | c == 'h' && d /= R = L 
-    | c == 'j' && d /= U = D
-    | c == 'k' && d /= D = U
-    | c == 'l' && d /= L = R
-    | otherwise = d
-    where d = dir world
-
 -- Generate a random coordinate (outside the snake) for food. 
 spawnFood :: Snake -> IO (Int, Int)
 spawnFood s = do
@@ -87,17 +74,6 @@ spawnFood s = do
         then return (x,y) 
         else spawnFood s
 
-
--- TODO: do this a bit more elegantly...
-gameOver :: World -> IO ()
-gameOver world = do 
-    let len = snakeLen (snake world)
-    clearScreen
-    setCursorPosition 0 0
-    putStrLn "GAME OVER"
-    putStr $ "SCORE: " ++ show len ++ "\n"
-    exitSuccess
-    
 eatFood :: Snake -> World -> (Snake, World)
 eatFood s world = 
     case food world of 
@@ -106,7 +82,7 @@ eatFood s world =
             if snakeContains s (x,y)
                 then (growSnake s (dir world), world { food = Nothing })
                 else (s, world)
-
+    
 updateWorld :: World -> UTCTime -> IO World
 updateWorld world timePoint = 
     if diffUTCTime timePoint (lastUpdateTime world) > moveTime
@@ -137,6 +113,28 @@ updateWorld world timePoint =
             return(world'')
         else return(world)
 
+{- Process input character.
+ - Direction cannot go from R to L or U to D (or vice versa). -}
+getCurrentDir :: World -> Maybe Char -> Dir
+getCurrentDir world Nothing = dir world
+getCurrentDir world (Just c)
+    | c == 'h' && d /= R = L 
+    | c == 'j' && d /= U = D
+    | c == 'k' && d /= D = U
+    | c == 'l' && d /= L = R
+    | otherwise = d
+    where d = dir world
+
+-- End the game and print the score.
+gameOver :: World -> IO ()
+gameOver world = do 
+    let len = snakeLen (snake world)
+    clearScreen
+    setCursorPosition 0 0
+    putStrLn "GAME OVER"
+    putStr $ "SCORE: " ++ show len ++ "\n"
+    exitSuccess
+
 gameLoop :: ThreadId -> MVar Char -> World -> IO ()
 gameLoop inputThId input world = do 
     timePoint <- getCurrentTime
@@ -165,4 +163,3 @@ main = do
     inputThId <- forkIO $ inputLoop input
     timePoint <- getCurrentTime
     gameLoop inputThId input (makeWorld timePoint)
-

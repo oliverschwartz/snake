@@ -1,12 +1,12 @@
-module Snake where
+-- Snake.hs
 
+module Snake where
 
 data Dir = U | D | L | R deriving (Eq, Show)
 data Piece = Piece Int Int deriving (Eq, Show)
 data Snake = Snake [Piece] deriving (Show)
 data Food = Food Int Int deriving (Eq, Show)
 
--- Construct a fresh snake of 1 square, moving right. 
 newSnake :: Snake
 newSnake = Snake [Piece 0 0]
 
@@ -17,6 +17,13 @@ snakeContains (Snake pcs) (x,y) = elem (Piece x y) pcs
 validateSnake :: Snake -> Int -> Bool
 validateSnake s@(Snake pcs) boardSize = snakeCollision s && 
                                         snakeInBorders s boardSize
+
+snakeToCoors :: Snake -> [(Int, Int)]
+snakeToCoors (Snake []) = []
+snakeToCoors (Snake ((Piece x y):pcs)) = (x,y) : snakeToCoors (Snake pcs)
+    
+snakeLen :: Snake -> Int
+snakeLen (Snake pcs) = length pcs
 
 -- Check the snake is inside the borders.
 snakeInBorders :: Snake -> Int -> Bool
@@ -67,14 +74,7 @@ movePiece (Piece x y) dir = case dir of
     L -> Piece (x-1) y
     R -> Piece (x+1) y
 
-snakeToCoors :: Snake -> [(Int, Int)]
-snakeToCoors (Snake []) = []
-snakeToCoors (Snake ((Piece x y):pcs)) = (x,y) : snakeToCoors (Snake pcs)
-    
-snakeLen :: Snake -> Int
-snakeLen (Snake pcs) = length pcs
-
--- The Manhattan distance from the snake. 
+-- The smallest Manhattan distance from any piece of the snake.
 distFromSnake :: Snake -> (Int, Int) -> Int
 distFromSnake (Snake []) _ = maxBound :: Int
 distFromSnake (Snake ((Piece x y):pcs)) t@(x',y') = 
